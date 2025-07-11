@@ -57,17 +57,30 @@ def main():
     driver = Edge(options=options)  # or webdriver.Firefox(options=options) for Firefox
 
     print("Navigating to event page...")
-    # driver.get("https://nitehartsfestival.frontgatetickets.com/event/j8l47xv1mru9qyz8/")
-    driver.get("https://lostindreams.frontgatetickets.com/event/5ogdnhrefopntv2o/")
+    driver.get("https://nitehartsfestival.frontgatetickets.com/event/j8l47xv1mru9qyz8/")
+    #driver.get("https://lostindreams.frontgatetickets.com/event/5ogdnhrefopntv2o/")
 
     # In the queue, wait for the "Add to Cart" button to appear (wait up to 1 hour)
     wait = WebDriverWait(driver, max_wait_time)
     try:
         print("Waiting in queue...")
-        add_to_cart_button = wait.until(EC.presence_of_element_located((By.ID, "btn-add-cart")))
+        #add_to_cart_button = wait.until(EC.presence_of_element_located((By.ID, "btn-add-cart")))
+        ticket_descriptionm = wait.until(EC.presence_of_element_located((By.ID, "eventContentInfo")))
     except:
         driver.quit()
         exit()
+
+    print("Ticket description found, proceeding to refresh until able to buy tickets...")
+    while True:
+        try:
+            add_to_cart_button = driver.find_element(By.ID, "btn-add-cart")
+            if add_to_cart_button.is_displayed():
+                print("Add to Cart button found, proceeding with ticket selection...")
+                break
+        except:
+            print("Add to Cart button not found, refreshing...")
+            driver.refresh()
+            time.sleep(2)  # wait before trying again
 
     qty_elem = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "sel-qty")))
     inc_button = driver.find_element(By.CLASS_NAME, "fbtn-quantity-up")
