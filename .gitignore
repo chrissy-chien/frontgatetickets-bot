@@ -1,3 +1,4 @@
 RecaptchaBypass/
 venv/
 geckodriver.exe
+passwords.json
