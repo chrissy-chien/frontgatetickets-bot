@@ -6,4 +6,5 @@ pytest-rerunfailures==15.1
 flake8==7.3.0
 requests==2.32.4
 tox==4.27.0
-requests===2.32.4
+pydub==0.25.1
+SpeechRecognition==3.8.1
