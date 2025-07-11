@@ -25,3 +25,9 @@ cd RecaptchaBypass
 pip install -r requirements.txt
 ```
 
+pip install pydub
+pip install --upgrade pip setuptools wheel
+pip install SpeechRecognition
+sudo apt update
+sudo apt install ffmpeg
+pip install 2captcha_python
