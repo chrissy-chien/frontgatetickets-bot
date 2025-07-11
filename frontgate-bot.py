@@ -3,8 +3,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
-from RecaptchaBypass.RecaptchaSolver import RecaptchaSolver
 from selenium.webdriver.chrome.options import Options
+from solve_recaptcha import solve_recaptcha_audio
+from selenium.webdriver.common.action_chains import ActionChains
+import json
 
 # for discord notifications
 import requests
@@ -23,29 +25,42 @@ def send_discord_notification(DISCORD_MESSAGE):
     except Exception as e:
         print(f"Error sending notification: {e}")
 
+# Load credentials from passwords.json
+with open('passwords.json', 'r') as f:
+    credentials = json.load(f)
+
+email = credentials.get("EMAIL")
+password = credentials.get("PASSWORD")
+card_number = credentials.get("CARD_NUMBER")
+expiration = credentials.get("EXPIRATION")
+cvv = credentials.get("CVV")
+
 ###########################
 desired_qty = 5  # Number of tickets to purchase - 1
-email = "your.email@gmail.com"
-password = "password123"  # Replace with your actual password
 options = Options()
 #options.add_argument("--headless")  # Run in headless mode if desired
-options.add_argument("--remote-debugging-port=5000")
-options.add_argument("--user-data-dir=C:/Users/chien/AppData/Local/Temp/selenium_frontgate")  # Use a persistent user profile for cookies/session
-options.add_argument("--start-maximized")
-options.add_experimental_option("detach", True)
 max_wait_time = 3600  # Maximum wait time in seconds (1 hour)
 ###########################
 
 #options = webdriver.FirefoxOptions()
-#options.add_argument("--headless")  # Run in headless mode if desired
+#options.add_argument("--headless=new")
+options.add_argument("--disable-blink-features=AutomationControlled")
+options.add_argument("--window-size=1920,1080")
+options.add_argument("--disable-infobars")
+options.add_argument("--start-maximized")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
+
 driver = webdriver.Chrome(options=options)  # or webdriver.Firefox(options=options) for Firefox
 
+print("Navigating to event page...")
 # driver.get("https://nitehartsfestival.frontgatetickets.com/event/j8l47xv1mru9qyz8/")
 driver.get("https://lostindreams.frontgatetickets.com/event/5ogdnhrefopntv2o/")
 
 # In the queue, wait for the "Add to Cart" button to appear (wait up to 1 hour)
 wait = WebDriverWait(driver, max_wait_time)
 try:
+    print("Waiting in queue...")
     add_to_cart_button = wait.until(EC.presence_of_element_located((By.ID, "btn-add-cart")))
 except:
     driver.quit()
@@ -54,6 +69,7 @@ except:
 qty_elem = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "sel-qty")))
 inc_button = driver.find_element(By.CLASS_NAME, "fbtn-quantity-up")
 
+print("Increasing ticket quantity...")
 while True:
     current_qty = int(qty_elem.get_attribute("value"))
     if current_qty >= desired_qty:
@@ -70,52 +86,66 @@ while True:
     if new_qty == current_qty:
         break
 
+print("Clicking Add to Cart button...")
 add_to_cart_button = wait.until(EC.element_to_be_clickable((By.ID, "btn-add-cart")))
 add_to_cart_button.click()
+print("Add to Cart clicked, waiting for loading modal to disappear...")
 wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "loading-modal")))
 
-recaptchaSolver = RecaptchaSolver(driver)
 
 wait.until(EC.presence_of_element_located((By.CLASS_NAME, "modal-dialog")))
 
+print("Checking for Captcha popup...")
 try:
     captcha_popup = driver.find_element(By.ID, "modal-captcha")
-    recaptchaSolver.solveCaptcha()
+    print("Attempting to solve Captcha...")
 
+    solve_recaptcha_audio(driver, wait)
+
+    print("Captcha solved, proceeding with submit button...")
     submit_button = wait.until(EC.element_to_be_clickable((By.ID, "div-btn-modal-submit")))
     submit_button.click()
 except:
     pass
 
 try:
+    print("Checking for checkout button...")
     #success_screen = driver.find_element(By.ID, "cart-success-header")
     checkout_button = wait.until(EC.element_to_be_clickable((By.ID, "btn-cart-success")))
+    print("Checkout button found, clicking...")
     checkout_button.click()
 except:
     pass
 
+print("Sending Discord notification...")
 send_discord_notification(DISCORD_MESSAGE)
 
-'''try:
-    email_input = wait.until(EC.presence_of_element_located((By.ID, "txt-login-email")))
-    driver.execute_script("arguments[0].scrollIntoView(true);", email_input)
-    email_input.click()
-    time.sleep(0.1)
-    email_input.clear()
-    email_input.send_keys(email)
+try:
+    navbar_signin_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "a#link-global-signin")))
+    navbar_signin_button.click()
 
-    wait.until(EC.element_to_be_clickable((By.ID, "txt-login-pass")))
-    password_input = driver.find_element(By.ID, "txt-login-pass")
-    password_input.click()
-    password_input.clear()
-    password_input.send_keys(password)
+    email_field = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#txt-login-email")))
+    #actions = ActionChains(driver)
+    #actions.move_to_element(email_field).click().perform()
+    #time.sleep(0.1)
+    email_field.send_keys(email)
+
+    password_field = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#txt-login-pass")))
+    password_field.send_keys(password)
 
     signin_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "btn-user-signin")))
     signin_button.click()
 except:
-    pass'''
+    pass
 
+try:
+    shipping_button = wait.until(EC.presence_of_element_located((By.ID, "btn-shipping-submit")))
+    shipping_button.click()
 
+    card_button = wait.until(EC.element_to_be_clickable((By.ID, "creditCardPmButton")))
+    card_button.click()
+except:
+    pass
 
 time.sleep(200)
 
