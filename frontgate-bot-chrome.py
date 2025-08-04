@@ -12,18 +12,7 @@ import json
 import requests
 from datetime import datetime
 bot_identifier = None
-DISCORD_WEBHOOK_URL = "credentials.get(WEBHOOK_URL)"
 DISCORD_MESSAGE = "Tickets Reserved Successfully via Chrome!"
-
-def send_discord_notification(DISCORD_MESSAGE):
-    data = {"content": DISCORD_MESSAGE}
-
-    try:
-        response = requests.post(DISCORD_WEBHOOK_URL, json=data)
-        if response.status_code != 204:
-            print(f"Failed to send notification: {response.status_code} - {response.text}")
-    except Exception as e:
-        print(f"Error sending notification: {e}")
 
 def main():
     # Load credentials from passwords.json
@@ -35,6 +24,7 @@ def main():
     card_number = credentials.get("CARD_NUMBER")
     expiration = credentials.get("EXPIRATION")
     cvv = credentials.get("CVV")
+    discord_webhook_url = credentials.get("DISCORD_WEBHOOK_URL")
 
     ###########################
     desired_qty = 5  # Number of tickets to purchase - 1
@@ -133,7 +123,7 @@ def main():
     except:
         pass
 
-    send_discord_notification(DISCORD_MESSAGE)
+    send_discord_notification(discord_webhook_url, DISCORD_MESSAGE)
     '''try:
         print("Checking for checkout button...")
         #success_screen = driver.find_element(By.ID, "cart-success-header")
@@ -180,6 +170,16 @@ def main():
     time.sleep(2000)
 
     driver.quit()
+
+def send_discord_notification(discord_webhook_url, DISCORD_MESSAGE):
+    data = {"content": DISCORD_MESSAGE}
+
+    try:
+        response = requests.post(discord_webhook_url, json=data)
+        if response.status_code != 204:
+            print(f"Failed to send notification: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"Error sending notification: {e}")
 
 if __name__ == "__main__":
     main()
